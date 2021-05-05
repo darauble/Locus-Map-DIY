@@ -26,13 +26,12 @@ def sort_way(way):
 	return int(way.attrib["id"])
 
 if len(sys.argv) < 2:
-	print("Nera argumentu")
+	print("No arguments. Provide the .osm file to parse.")
 	exit(-1)
 
-print(sys.argv[1])
 name = sys.argv[1]
 
-print("Užkraunam XMLą...")
+print("Loading XML to memory...")
 
 t = ET.parse(name)
 root = t.getroot()
@@ -41,26 +40,16 @@ print("...done")
 
 way_dict = {}
 
-print("Parsinam kelius...")
+print("Preparing a quick access dictionary of ways...")
 
 for way in root:
-#	if "version" in way.attrib:
-#		way.attrib["version"] = "100"
 	if way.tag == "way":
 		way_dict[way.attrib["id"]] = way
 
-print("..done")
-
-#print("Parsinam mazgus...")
-
-#node_dict = {}
-
-#for node in root:
-#	if node.tag == "node":
-#		node_dict[node.attrib["id"]] = node
+print("...done")
 
 
-print("Parsinam ryšius...")
+print("Parsing relations...")
 
 relations_tree = {}
 
@@ -71,8 +60,6 @@ orig_relations = []
 
 for child in root:
 	if child.tag == "relation":
-		#child.attrib["id"] = str(60000000000000000 + int(child.attrib["id"]))
-		
 		relation = {
 			"name": "",
 			"route": "",
@@ -108,20 +95,20 @@ for child in root:
 					relation["network"] = "lcn"
 
 		if relation["name"] != "" and relation["route"] != "" and relation["network"] != "":
-			print("\tRyšys:")
+			print("\tRelation:")
 			print("\t\tname: %s" % relation["name"])
 			print("\t\troute: %s" % relation["route"])
 			print("\t\tnetwork: %s" % relation["network"])
 			if "osmc:symbol" in relation:
 				print("\t\tosmc:symbol: %s" % relation["osmc:symbol"])
-			#print("\tways:", rel_ways)
+			if "ref" in relation:
+				print("\t\tref: %s" % relation["ref"])
 
 			relations_tree[relation["route"]].append(relation)
 
-		#root.remove(child)
 		orig_relations.append(child)
 
-print("\tRasta ryšių:")
+print("\tFound relations:")
 
 for relation_type in REL_TYPES:
 	print("\t\t%s: %d" % (relation_type, len(relations_tree[relation_type])))
@@ -132,41 +119,24 @@ for child in orig_relations:
 print("...done")
 
 
-
-print("Papildom kelius...")
+print("Modifying and copying ways...")
 
 new_ways = []
 
 for relation_type in REL_TYPES:
-	print("\ttvarkom %s" % relation_type)
+	print("\tprocessing %s" % relation_type)
 
 	modified_ways = 0
-	#modified_nodes = 0
 
 	for relation in relations_tree[relation_type]:
 		for way_id in relation["ways"]:
 			if way_id in way_dict:
 				way = copy.deepcopy(way_dict[way_id])
 
-				#for nd in way:
-				#	if nd.tag == "nd":
-				#		node_ref = nd.attrib["ref"]
-
-				#		if node_ref in node_dict:
-				#			node = copy.deepcopy(node_dict[node_ref])
-				#			node.attrib["id"] = str(REL_CODE[relation["route"]] + NET_CODE[relation["network"][0]] + int(node_ref))
-				#			nd.attrib["ref"] = node.attrib["id"]
-
-				#			root.append(node)
-				#			modified_nodes = modified_nodes + 1
-						#str(REL_CODE[relation["route"]] + NET_CODE[relation["network"][0]] + int(way.attrib["id"]))
-
 				way.attrib["id"] = str(REL_CODE[relation["route"]] + NET_CODE[relation["network"][0]] + int(way.attrib["id"]))
 				way_route = ET.SubElement(way, "tag")
 				way_route.attrib["k"] = "route"
 				way_route.attrib["v"] = relation["route"]
-				#way.attrib["version"] = str(int(way.attrib["version"]) + 1)
-
 
 				way_network = ET.SubElement(way, "tag")
 				way_network.attrib["k"] = "network"
@@ -193,20 +163,15 @@ for relation_type in REL_TYPES:
 					way_ocolor.attrib["k"] = "ref"
 					way_ocolor.attrib["v"] = relation["ref"]
 
-				#root.append(way)
 				new_ways.append(way)
 
 				modified_ways = modified_ways + 1
 
-#print("...done, nukopijuoti keliai: %d, mazgai: %d" % (modified_ways, modified_nodes))
-print("...done, nukopijuoti keliai: %d" % modified_ways)
+print("...done, copied ways: %d" % modified_ways)
 
-print("Rūšiuojam kelius...")
+print("Sorting ways...")
 
 new_ways.sort(key=sort_way)
-
-#for way in new_ways:
-#	root.append(way)
 
 root.append(new_ways[0])
 for i in range(1, len(new_ways)):
@@ -216,9 +181,9 @@ for i in range(1, len(new_ways)):
 
 print("...done")
 
-print("Rašom naują XMLą...")
+print("Writing new XML to the disk...")
 
 t.write(name+".xml")
 
-print("...done")
+print("...done. Please wait until script releases memory and exits on its own.")
 
