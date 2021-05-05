@@ -98,9 +98,10 @@ Owerwrite original LoPoins database on your phone with newly generated one.
 
 # Unsolved Issues
 
-Even though I followed the process described by Peter, I still could not get two coloured lines on one way. They are merged. It is fortunate the bicycle icon is added to underlying cycling route.
+Even though I followed the process described by Petr, I still could not get two coloured lines on one way. They are merged. It is fortunate the bicycle icon is added to underlying cycling route.
 
 | Original Locus Maps with highlighted routes | Custom generated map |
 |------------|-------------|
 | <img src="screenshots/original-2.jpg" width="300"> | <img src="screenshots/processed-generated.jpg" width="300"> |
 
+I also don't include SRTM information, so maps are "flat", i.e. they don't provide terrain contours, whereas original LoMaps do.
