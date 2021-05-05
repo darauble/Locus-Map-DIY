@@ -1,0 +1,11 @@
+--- osmosis/bin/osmosis	2020-03-10 18:56:29.000000000 +0200
++++ osmosis-patched/bin/osmosis	2021-04-29 09:45:16.838622654 +0300
+@@ -5,6 +5,8 @@
+ # JAVACMD_OPTIONS - The options to append to the java command, typically used to modify jvm settings such as max memory.
+ # OSMOSIS_OPTIONS - The options to apply to all osmosis invocations, typically used to add plugins or make quiet operation the default.
+ 
++JAVACMD_OPTIONS=-Xmx8192m
++
+ if [ -f /etc/osmosis ] ; then
+   . /etc/osmosis
+ fi
