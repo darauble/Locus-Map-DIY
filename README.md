@@ -4,7 +4,7 @@ This is a set of simple Linux shell scripts and one additional Python3 script fo
 
 # The Rationale
 
-I always buy and updated version of LoMaps for my little country or other countries I intend to visit for hiking&biking. However, releases are not that frequent, and OSM is updated constantly. I contribute actively to OSM myself.
+I always buy an updated version of LoMaps for my little country or other countries I intend to visit for hiking&biking. However, releases are not that frequent, and OSM is updated constantly. I contribute actively to OSM myself.
 
 This is why I started "research" on how to create an updated version of the map. The deeper I digged, the more I appreciate what Locus Map team done to deliver really nice looking and informative maps. I only partially recreated their work with the help of Petr Voldán. He was very nice and actively replied to my questions on Locus Map forum.
 
