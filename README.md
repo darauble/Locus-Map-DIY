@@ -68,7 +68,7 @@ The script `01-download-tools.sh` downloads the following tools required for ove
 
 Script also patches Osmosis to use up to 8 GB of PC memory. You can edit the script and force MapsForge plugin to store temporary data on the disk, but make sure you have enough space on your `tmpfs`. Maybe it's in the RAM too?
 
-Country of Lithuania is quite small, it's PBF file is just around ~150 MB. So if Osmosis spits OutOfMemory error for your bigger country, either give more heap space (by editing osmosis/bin/osmosis file), or set MapsForge to use disk.
+Country of Lithuania is quite small, its PBF file is just around ~150 MB. So if Osmosis spits OutOfMemory error for your bigger country, either give more heap space (by editing osmosis/bin/osmosis file), or set MapsForge to use disk.
 
 If all goes well, this script needs to be executed only once. Tools are left on the disk and reused later.
 
@@ -82,7 +82,7 @@ Download the country file as ofthen as you wish, but at most once per day: maps 
 
 The script `03-process-routes.sh` runs in two steps.
 
-First, the script extracts all relations from PBF file of types `historic|mtb|bicycle|foot|hiking`. Then it runs `parse-routes.py` script, which loads the exctracted XML file to memory and processes it. Script scans all relations and for each relation it creates new ways, but with applied attributes from the relation. Ways get specific IDs, that are currently far from maximum on OSM. One day they might be too small, however. There is a special treatment for `osmc:symbol` attribute, that Peter from Locus Map revealed to me.
+First, the script extracts all relations from PBF file of types `historic|mtb|bicycle|foot|hiking`. Then it runs `parse-routes.py` script, which loads the exctracted XML file to memory and processes it. Script scans all relations and for each relation it creates new ways, but with applied attributes from the relation. Ways get specific IDs, that are currently far from maximum on OSM. One day they might be too small, however. There is a special treatment for `osmc:symbol` attribute, that Petr from Locus Map revealed to me.
 
 For Lithuania the exctracted XML file is ~2 GB. I crafted a very stupid script, which loads the XML to memory and after processing writes it back to disk. I have a beafy machine with loads of RAM, so I don't care. But bear in mind, that script might easily consume 32 GB of RAM and swap badly. So be patient (_or add moar RAM_). Even after processed file is written to the disk the script takes significant time to perform memory release.
 
