@@ -54,6 +54,8 @@ Backup your LoMaps files. They should be located on Android device's flash stora
 
 Also copy `<country>.osm.db` to the folder with my scripts as `locus-orig-<country>.osm.db`. It will be used as a base for adding new POIs from the latest PBF file.
 
+*Note*. If you didn't purchase LoMaps with LoPoints, you can create them from scratch instead of appending. Only place final files in appropriate directories.
+
 ## Edit Configuration
 
 Edit the included `cfg` file. You should only be interested in changing `CONTINENT` and `COUNTRY`.
@@ -82,9 +84,9 @@ Download the country file as ofthen as you wish, but at most once per day: maps 
 
 The script `03-process-routes.sh` runs in two steps.
 
-First, the script extracts all relations from PBF file of types `historic|mtb|bicycle|foot|hiking`. Then it runs `parse-routes.py` script, which loads the exctracted XML file to memory and processes it. Script scans all relations and for each relation it creates new ways, but with applied attributes from the relation. Ways get specific IDs, that are currently far from maximum on OSM. One day they might be too small, however. There is a special treatment for `osmc:symbol` attribute, that Petr from Locus Map revealed to me.
+First, the script extracts all relations from PBF file of types `historic|mtb|bicycle|foot|hiking`. Then it runs `parse-routes.py` script, which parses the exctracted XML file in two passes. Passes are required to save memory, as initially full loading took a very long time and lots of memory for a comparatively small country.. Script scans all relations and for each relation it creates new ways, but with applied attributes from the relation. Ways get specific IDs, that are currently far from maximum on OSM. One day they might be too small, however. There is a special treatment for `osmc:symbol` attribute, that Petr from Locus Map revealed to me.
 
-For Lithuania the exctracted XML file is ~2 GB. I crafted a very stupid script, which loads the XML to memory and after processing writes it back to disk. I have a beafy machine with loads of RAM, so I don't care. But bear in mind, that script might easily consume 32 GB of RAM and swap badly. So be patient (_or add moar RAM_). Even after processed file is written to the disk the script takes significant time to perform memory release.
+For Lithuania the exctracted XML file is ~2 GB. I initially crafted a very stupid script, which loaded the XML to memory and after processing wrote it back to disk. I have a beafy machine with loads of RAM, so I didn't care. Buti it also took a lot of time. So I rewrote this utility to first create two indexes, that take much less RAM footprint, for the same 2 GB it used only 6 MB of RAM, which is an insanely high improvement over 30 GB. This also enabled me to create coloured map for quite a huge country of Poland, which in comparison has extracted relations of 22 GB!
 
 ## Create the Map!
 
@@ -94,7 +96,9 @@ Run the script `04-create-map.sh`. It will merge original PBF file with processe
 
 Run the script `05-append-poi.sh`. You should've copied original LoPoints file `<country>.osm.db` to the folder with scripts as `locus-orig-<country>.osm.db`. This scripts copies original file and appends with newly found POIs. Some of the POI types don't exist in original LoPoints, so it is possible you'll find lots of new ones popping around.
 
-Owerwrite original LoPoins database on your phone with newly generated one.
+Owerwrite original LoPoints database on your phone with newly generated one.
+
+If you don't have original LoPoints for a specific country, you can use `05-create-poi.sh` script. It will create a new database from scratch. Place it together with generated map to `Locus/mapsVector/<continent>` and most probably it will work.
 
 # Unsolved Issues
 

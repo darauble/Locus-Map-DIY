@@ -1,7 +1,10 @@
 import sys
-import copy
 import xml.etree.ElementTree as ET
-import json
+import mmap
+import re
+import os
+
+import tracemalloc
 
 REL_TYPES = ["historic", "mtb", "bicycle", "foot", "hiking"]
 REL_CODE = {
@@ -22,168 +25,271 @@ NET_CODE = {
 HIKING_NETWORKS = ["rwn", "lwn", "nwn", "iwn"]
 CYCLING_NETWORKS = ["rcn", "lcn", "ncn", "icn"]
 
-def sort_way(way):
-	return int(way.attrib["id"])
+def build_index(file_name, tag):
+	print("Start building index on %s in %s..." % (tag, file_name))
+	way_dict = {}
+	search_id = re.compile("id=['\"](\d+)['\"]")
+	way_count = 0
 
-if len(sys.argv) < 2:
-	print("No arguments. Provide the .osm file to parse.")
-	exit(-1)
+	with open(file_name, 'rb', 0) as f:
+		search_pos = 0
+		exit = False
+		s = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
 
-name = sys.argv[1]
+		start_token = ('<%s' % tag).encode("utf-8")
+		end_token = ('</%s>' % tag).encode("utf-8")
 
-print("Loading XML to memory...")
+		while not exit:
+			start = s.find(start_token, search_pos)
+			tag_close = s.find(b'>', start + 4)
+			way_id = search_id.search(s[start:tag_close+1].decode("utf-8"))
 
-t = ET.parse(name)
-root = t.getroot()
+			if start != -1 and tag_close != -1:
+				end = s.find(end_token, tag_close + 1)
 
-print("...done")
+				if end != -1:
+					search_pos = end + len(tag) + 3
 
-way_dict = {}
+					if way_id:
+						way_dict[way_id[1]] = { "start": start, "end": search_pos }
+						way_count = way_count + 1
 
-print("Preparing a quick access dictionary of ways...")
-
-for way in root:
-	if way.tag == "way":
-		way_dict[way.attrib["id"]] = way
-
-print("...done")
-
-
-print("Parsing relations...")
-
-relations_tree = {}
-
-for rel_type in REL_TYPES:
-	relations_tree[rel_type] = []
-
-orig_relations = []
-
-for child in root:
-	if child.tag == "relation":
-		relation = {
-			"name": "",
-			"route": "",
-			"network": "",
-			"ways": []
-		}
-
-		for rel_child in child:
-			if rel_child.tag == "member" and rel_child.attrib["type"] == "way":
-				relation["ways"].append(rel_child.attrib["ref"])
-			elif rel_child.tag == "tag":
-				if rel_child.attrib["k"] == "name":
-					relation["name"] = rel_child.attrib["v"]
-				elif rel_child.attrib["k"] == "route" and rel_child.attrib["v"] in REL_TYPES:
-					relation["route"] = rel_child.attrib["v"]
-				elif rel_child.attrib["k"] == "network":
-					relation["network"] = rel_child.attrib["v"]
-				elif rel_child.attrib["k"] == "osmc:symbol":
-					relation["osmc:symbol"] = rel_child.attrib["v"]
-				elif rel_child.attrib["k"] == "ref":
-					relation["ref"] = rel_child.attrib["v"]
-
-		if relation["network"] not in HIKING_NETWORKS and relation["network"] not in CYCLING_NETWORKS:
-			if relation["route"] == "hiking" or relation["route"] == "foot" or relation["route"] == "historic":
-				if relation["network"] == "lt:regional":
-					relation["network"] = "rwn"
 				else:
-					relation["network"] = "lwn"
+					exit = True
 			else:
-				if relation["network"] == "lt:regional":
-					relation["network"] = "rcn"
+				exit = True
+
+	print("... done, found %d tags" % way_count)
+	return way_dict
+
+def build_relations_tree(file_name, relations_dict):
+	print("Start building relations tree on %s..." % file_name)
+	relations_tree = {}
+
+	for rel_type in REL_TYPES:
+		relations_tree[rel_type] = []
+
+	events = ("start", "end")
+	start_relation = False
+
+	with open(file_name, 'rb', 0) as f:
+		s = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
+
+		for k, v in relations_dict.items():
+			rel_xml_string = s[v["start"]:v["end"]].decode("utf-8")
+			root = ET.fromstring(rel_xml_string)
+
+			relation = {
+				"name": "",
+				"route": "",
+				"network": "",
+				"ways": []
+			}
+
+			for rel_child in root:
+				if rel_child.tag == "member" and rel_child.attrib["type"] == "way":
+					relation["ways"].append(rel_child.attrib["ref"])
+				elif rel_child.tag == "tag":
+					if rel_child.attrib["k"] == "name":
+						relation["name"] = rel_child.attrib["v"]
+					elif rel_child.attrib["k"] == "route" and rel_child.attrib["v"] in REL_TYPES:
+						relation["route"] = rel_child.attrib["v"]
+					elif rel_child.attrib["k"] == "network":
+						relation["network"] = rel_child.attrib["v"]
+					elif rel_child.attrib["k"] == "osmc:symbol":
+						relation["osmc:symbol"] = rel_child.attrib["v"]
+					elif rel_child.attrib["k"] == "ref":
+						relation["ref"] = rel_child.attrib["v"]
+
+			if relation["network"] not in HIKING_NETWORKS and relation["network"] not in CYCLING_NETWORKS:
+				if relation["route"] == "hiking" or relation["route"] == "foot" or relation["route"] == "historic":
+					if relation["network"] == "lt:regional":
+						relation["network"] = "rwn"
+					else:
+						relation["network"] = "lwn"
 				else:
-					relation["network"] = "lcn"
+					if relation["network"] == "lt:regional":
+						relation["network"] = "rcn"
+					else:
+						relation["network"] = "lcn"
 
-		if relation["name"] != "" and relation["route"] != "" and relation["network"] != "":
-			print("\tRelation:")
-			print("\t\tname: %s" % relation["name"])
-			print("\t\troute: %s" % relation["route"])
-			print("\t\tnetwork: %s" % relation["network"])
-			if "osmc:symbol" in relation:
-				print("\t\tosmc:symbol: %s" % relation["osmc:symbol"])
-			if "ref" in relation:
-				print("\t\tref: %s" % relation["ref"])
-
-			relations_tree[relation["route"]].append(relation)
-
-		orig_relations.append(child)
-
-print("\tFound relations:")
-
-for relation_type in REL_TYPES:
-	print("\t\t%s: %d" % (relation_type, len(relations_tree[relation_type])))
-
-for child in orig_relations:
-	root.remove(child)
-
-print("...done")
-
-
-print("Modifying and copying ways...")
-
-new_ways = []
-
-for relation_type in REL_TYPES:
-	print("\tprocessing %s" % relation_type)
-
-	modified_ways = 0
-
-	for relation in relations_tree[relation_type]:
-		for way_id in relation["ways"]:
-			if way_id in way_dict:
-				way = copy.deepcopy(way_dict[way_id])
-
-				way.attrib["id"] = str(REL_CODE[relation["route"]] + NET_CODE[relation["network"][0]] + int(way.attrib["id"]))
-				way_route = ET.SubElement(way, "tag")
-				way_route.attrib["k"] = "route"
-				way_route.attrib["v"] = relation["route"]
-
-				way_network = ET.SubElement(way, "tag")
-				way_network.attrib["k"] = "network"
-				way_network.attrib["v"] = relation["network"]
-
+			if relation["name"] != "" and relation["route"] != "" and relation["network"] != "":
+				print("\tRelation:")
+				print("\t\tname: %s" % relation["name"])
+				print("\t\troute: %s" % relation["route"])
+				print("\t\tnetwork: %s" % relation["network"])
 				if "osmc:symbol" in relation:
-					osmc = relation["osmc:symbol"].split(":")
-
-					if len(osmc) >= 3:
-						way_ocolor = ET.SubElement(way, "tag")
-						way_ocolor.attrib["k"] = "osmc_color"
-						way_ocolor.attrib["v"] = osmc[0]
-
-						way_ocolor = ET.SubElement(way, "tag")
-						way_ocolor.attrib["k"] = "osmc_background"
-						way_ocolor.attrib["v"] = osmc[1]
-
-						way_ocolor = ET.SubElement(way, "tag")
-						way_ocolor.attrib["k"] = "osmc_foreground"
-						way_ocolor.attrib["v"] = osmc[2]
-
+					print("\t\tosmc:symbol: %s" % relation["osmc:symbol"])
 				if "ref" in relation:
-					way_ocolor = ET.SubElement(way, "tag")
-					way_ocolor.attrib["k"] = "ref"
-					way_ocolor.attrib["v"] = relation["ref"]
+					print("\t\tref: %s" % relation["ref"])
 
-				new_ways.append(way)
+				relations_tree[relation["route"]].append(relation)
 
-				modified_ways = modified_ways + 1
+			root.clear()
+			root = None
 
-print("...done, copied ways: %d" % modified_ways)
+	print("\tFound relations:")
 
-print("Sorting ways...")
+	for relation_type in REL_TYPES:
+		print("\t\t%s: %d" % (relation_type, len(relations_tree[relation_type])))
 
-new_ways.sort(key=sort_way)
+	print("...done")
 
-root.append(new_ways[0])
-for i in range(1, len(new_ways)):
-	if new_ways[i].attrib["id"] != new_ways[i-1].attrib["id"]:
-		root.append(new_ways[i])
-		
+	return relations_tree
 
-print("...done")
+def generate_ways(file_name, tmp_name, way_dict, relations_tree):
+	print("Write temporary ways file %s..." % tmp_name)
 
-print("Writing new XML to the disk...")
+	copied_ways = 0
+	with open(file_name, "rb", 0) as r:
+		ways_file = mmap.mmap(r.fileno(), 0, access=mmap.ACCESS_READ)
 
-t.write(name+".xml")
+		with open(tmp_name, "wb") as w:
+			for relation_type in REL_TYPES:
+				print("\tprocessing %s" % relation_type)
 
-print("...done. Please wait until script releases memory and exits on its own.")
+				for relation in relations_tree[relation_type]:
+					for way_id in relation["ways"]:
+						if way_id in way_dict:
+							way_entry = way_dict[way_id]
+							way_xml_string = ways_file[way_entry["start"]:way_entry["end"]].decode("utf-8")
+							way = ET.fromstring(way_xml_string)
+
+							way.attrib["id"] = str(REL_CODE[relation["route"]] + NET_CODE[relation["network"][0]] + int(way.attrib["id"]))
+							way_route = ET.SubElement(way, "tag")
+							way_route.attrib["k"] = "route"
+							way_route.attrib["v"] = relation["route"]
+
+							way_network = ET.SubElement(way, "tag")
+							way_network.attrib["k"] = "network"
+							way_network.attrib["v"] = relation["network"]
+
+							if "osmc:symbol" in relation:
+								osmc = relation["osmc:symbol"].split(":")
+
+								if len(osmc) >= 3:
+									way_ocolor = ET.SubElement(way, "tag")
+									way_ocolor.attrib["k"] = "osmc_color"
+									way_ocolor.attrib["v"] = osmc[0]
+
+									way_ocolor = ET.SubElement(way, "tag")
+									way_ocolor.attrib["k"] = "osmc_background"
+									way_ocolor.attrib["v"] = osmc[1]
+
+									way_ocolor = ET.SubElement(way, "tag")
+									way_ocolor.attrib["k"] = "osmc_foreground"
+									way_ocolor.attrib["v"] = osmc[2]
+
+							if "ref" in relation:
+								way_ocolor = ET.SubElement(way, "tag")
+								way_ocolor.attrib["k"] = "ref"
+								way_ocolor.attrib["v"] = relation["ref"]
+
+							w.write(ET.tostring(way,encoding="utf-8"))
+							copied_ways = copied_ways + 1
+
+							way.clear()
+							way = None
+
+	print("..done, copied ways: %d" % copied_ways)
+						
+
+def sort_way_id(way_id):
+	return int(way_id)
+
+def sort_new_ways(file_name, tmp_name, final_name, new_way_dict):
+	print("Sorting ways from %s..." % tmp_name)
+	header = ""
+	
+	with open(file_name, "rb", 0) as f:
+		s = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
+
+		bpos = s.find(b'<bounds', 0)
+
+		if bpos != -1:
+			bend = s.find(b'/>')
+			if bend != -1:
+				header = s[0:bend+2]
+			else:
+				print("\tcould not find file header (2)")
+		else:
+			print("\tcould not find file header (1)")
+
+	way_id_list = [key for key in new_way_dict]
+
+	way_id_list.sort(key=sort_way_id)
+
+	print("\tsorted, now writing to the final file...")
+
+	with open(tmp_name, "rb", 0) as r:
+		ways_file = mmap.mmap(r.fileno(), 0, access=mmap.ACCESS_READ)
+
+		with open(final_name, "wb") as w:
+			w.write(header)
+
+			way_entry = new_way_dict[way_id_list[0]]
+			way_xml = ways_file[way_entry["start"]:way_entry["end"]]
+			w.write(way_xml)
+
+			for i in range(1, len(way_id_list)):
+				if way_id_list[i] != way_id_list[i-1]:
+					way_entry = new_way_dict[way_id_list[i]]
+					way_xml = ways_file[way_entry["start"]:way_entry["end"]]
+					w.write(way_xml)
+
+			if header != "":
+				w.write(b'</osm>')
+
+	print("...done")
+
+### Execution starts here ###
+tracemalloc.start()
+
+file_name = sys.argv[1]
+tmp_name = "ways.tmp"
+final_name = file_name + ".xml"
+
+## Step 1 ##
+way_dict = build_index(file_name, "way")
+
+current, peak = tracemalloc.get_traced_memory()
+print(f"Current memory usage is {current / 10**6}MB; Peak was {peak / 10**6}MB")
+
+## Step 2 ##
+rel_dict = build_index(file_name, "relation")
+
+current, peak = tracemalloc.get_traced_memory()
+print(f"Current memory usage is {current / 10**6}MB; Peak was {peak / 10**6}MB")
+
+## Step 3 ##
+rel_tree = build_relations_tree(file_name, rel_dict)
+
+current, peak = tracemalloc.get_traced_memory()
+print(f"Current memory usage is {current / 10**6}MB; Peak was {peak / 10**6}MB")
+
+## Step 4 ##
+generate_ways(file_name, tmp_name, way_dict, rel_tree)
+
+current, peak = tracemalloc.get_traced_memory()
+print(f"Current memory usage is {current / 10**6}MB; Peak was {peak / 10**6}MB")
+
+## Step 5 ##
+way_dict = None
+rel_dict = None
+rel_tree = None
+
+new_way_dict = build_index(tmp_name, "way")
+
+current, peak = tracemalloc.get_traced_memory()
+print(f"Current memory usage is {current / 10**6}MB; Peak was {peak / 10**6}MB")
+
+### Step 6 ###
+sort_new_ways(file_name, tmp_name, final_name, new_way_dict)
+
+current, peak = tracemalloc.get_traced_memory()
+print(f"Current memory usage is {current / 10**6}MB; Peak was {peak / 10**6}MB")
+
+os.remove(tmp_name)
+
+tracemalloc.stop()
 
