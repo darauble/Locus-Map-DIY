@@ -122,6 +122,8 @@ def build_relations_tree(file_name, relations_dict):
 					print("\t\tosmc:symbol: %s" % relation["osmc:symbol"])
 				if "ref" in relation:
 					print("\t\tref: %s" % relation["ref"])
+				else:
+					relation["ref"] = relation["name"]
 
 				relations_tree[relation["route"]].append(relation)
 

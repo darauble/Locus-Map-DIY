@@ -1,10 +1,12 @@
 #!/bin/bash
 CONTINENT=europe
-COUNTRY=lithuania
+#COUNTRY=lithuania
+COUNTRY=poland
 PBF_FILE=${COUNTRY}-latest.osm.pbf
 MAP_FILE=${COUNTRY}.osm.map
 LOCUS_POI_FILE=locus-orig-${COUNTRY}.osm.db
 POI_FILE=${COUNTRY}.osm.db
 ROUTES_FILE=${COUNTRY}-routes.osm
+MAPSFORGE_TYPE=ram
 MAPSFORGE_VERSION=20210413.105615-406
 OSMOSIS_VERSION=0.48.3
