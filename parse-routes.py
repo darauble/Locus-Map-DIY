@@ -90,16 +90,17 @@ def build_relations_tree(file_name, relations_dict):
 				if rel_child.tag == "member" and rel_child.attrib["type"] == "way":
 					relation["ways"].append(rel_child.attrib["ref"])
 				elif rel_child.tag == "tag":
-					if rel_child.attrib["k"] == "name":
-						relation["name"] = rel_child.attrib["v"]
-					elif rel_child.attrib["k"] == "route" and rel_child.attrib["v"] in REL_TYPES:
-						relation["route"] = rel_child.attrib["v"]
-					elif rel_child.attrib["k"] == "network":
-						relation["network"] = rel_child.attrib["v"]
-					elif rel_child.attrib["k"] == "osmc:symbol":
-						relation["osmc:symbol"] = rel_child.attrib["v"]
-					elif rel_child.attrib["k"] == "ref":
-						relation["ref"] = rel_child.attrib["v"]
+					relation[rel_child.attrib["k"]] = rel_child.attrib["v"]
+					#if rel_child.attrib["k"] == "name":
+					#	relation["name"] = rel_child.attrib["v"]
+					#elif rel_child.attrib["k"] == "route" and rel_child.attrib["v"] in REL_TYPES:
+					#	relation["route"] = rel_child.attrib["v"]
+					#elif rel_child.attrib["k"] == "network":
+					#	relation["network"] = rel_child.attrib["v"]
+					#elif rel_child.attrib["k"] == "osmc:symbol":
+					#	relation["osmc:symbol"] = rel_child.attrib["v"]
+					#elif rel_child.attrib["k"] == "ref":
+					#	relation["ref"] = rel_child.attrib["v"]
 
 			if relation["network"] not in HIKING_NETWORKS and relation["network"] not in CYCLING_NETWORKS:
 				if relation["route"] == "hiking" or relation["route"] == "foot" or relation["route"] == "historic":
@@ -113,7 +114,7 @@ def build_relations_tree(file_name, relations_dict):
 					else:
 						relation["network"] = "lcn"
 
-			if relation["name"] != "" and relation["route"] != "" and relation["network"] != "":
+			if relation["name"] != "" and relation["route"] in REL_TYPES and relation["network"] != "":
 				print("\tRelation:")
 				print("\t\tname: %s" % relation["name"])
 				print("\t\troute: %s" % relation["route"])
@@ -157,37 +158,57 @@ def generate_ways(file_name, tmp_name, way_dict, relations_tree):
 							way_xml_string = ways_file[way_entry["start"]:way_entry["end"]].decode("utf-8")
 							way = ET.fromstring(way_xml_string)
 
+							way_tags = []
+
+							for way_elm in way:
+								if way_elm.tag == "tag":
+									way_tags.append(way_elm)
+
+							for way_elm in way_tags:
+								way.remove(way_elm)
+
 							way.attrib["id"] = str(REL_CODE[relation["route"]] + NET_CODE[relation["network"][0]] + int(way.attrib["id"]))
-							way_route = ET.SubElement(way, "tag")
-							way_route.attrib["k"] = "route"
-							way_route.attrib["v"] = relation["route"]
 
-							way_network = ET.SubElement(way, "tag")
-							way_network.attrib["k"] = "network"
-							way_network.attrib["v"] = relation["network"]
 
-							if "osmc:symbol" in relation:
-								osmc = relation["osmc:symbol"].split(":")
+							# Reverse direction of bicycle routes, so their colorization is on the opposite side of hiking route
+							if relation["route"] == "bicycle" or relation["route"] == "mtb":
+								way_nodes = []
+								for node in way:
+									if node.tag == "nd":
+										way_nodes.append(node)
 
-								if len(osmc) >= 3:
+								for node in way_nodes:
+									way.remove(node)
+
+								for i in range(len(way_nodes)-1, -1, -1):
+									way.append(way_nodes[i])
+
+							for k, v in relation.items():
+								if k == "osmc:symbol":
+									osmc = relation["osmc:symbol"].split(":")
+
 									way_ocolor = ET.SubElement(way, "tag")
 									way_ocolor.attrib["k"] = "osmc_color"
 									way_ocolor.attrib["v"] = osmc[0]
+									way_ocolor.tail = "\n"
 
 									way_ocolor = ET.SubElement(way, "tag")
 									way_ocolor.attrib["k"] = "osmc_background"
 									way_ocolor.attrib["v"] = osmc[1]
+									way_ocolor.tail = "\n"
 
 									way_ocolor = ET.SubElement(way, "tag")
 									way_ocolor.attrib["k"] = "osmc_foreground"
 									way_ocolor.attrib["v"] = osmc[2]
+									way_ocolor.tail = "\n"
+								elif k != "ways":
+									way_tag = ET.SubElement(way, "tag")
+									way_tag.attrib["k"] = k
+									way_tag.attrib["v"] = v
+									way_tag.tail = "\n"
 
-							if "ref" in relation:
-								way_ocolor = ET.SubElement(way, "tag")
-								way_ocolor.attrib["k"] = "ref"
-								way_ocolor.attrib["v"] = relation["ref"]
 
-							w.write(ET.tostring(way,encoding="utf-8"))
+							w.write(ET.tostring(way, encoding="utf-8"))
 							copied_ways = copied_ways + 1
 
 							way.clear()

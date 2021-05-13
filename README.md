@@ -42,6 +42,8 @@ We need to copy the way, as one way cannot contain two sets of attributes like `
 
 For copying ways I have created my own parsing script.
 
+Also, for those ways, that are part of bicycle and foot I change the way direction for bicycle. This makes two coloured lines appear on opposite sides of road. Otherwise lines would go on top of each other.
+
 # The Process
 
 If for any reason you'd like to replicate my struggle and update outdated LoMaps file for your country (-ies), follow the steps.
@@ -102,10 +104,4 @@ If you don't have original LoPoints for a specific country, you can use `05-crea
 
 # Unsolved Issues
 
-Even though I followed the process described by Petr, I still could not get two coloured lines on one way. They are merged. It is fortunate the bicycle icon is added to underlying cycling route.
-
-| Original Locus Maps with highlighted routes | Custom generated map |
-|------------|-------------|
-| <img src="screenshots/original-2.jpg" width="300"> | <img src="screenshots/processed-generated.jpg" width="300"> |
-
-I also don't include SRTM information, so maps are "flat", i.e. they don't provide terrain contours, whereas original LoMaps do.
+No SRTM information, so maps are "flat", i.e. they don't provide terrain contours, whereas original LoMaps do.
