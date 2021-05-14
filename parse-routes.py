@@ -188,6 +188,11 @@ def generate_ways(file_name, tmp_name, way_dict, relations_tree):
 									osmc = relation["osmc:symbol"].split(":")
 
 									way_ocolor = ET.SubElement(way, "tag")
+									way_ocolor.attrib["k"] = "osmc"
+									way_ocolor.attrib["v"] = "yes"
+									way_ocolor.tail = "\n"
+
+									way_ocolor = ET.SubElement(way, "tag")
 									way_ocolor.attrib["k"] = "osmc_color"
 									way_ocolor.attrib["v"] = osmc[0]
 									way_ocolor.tail = "\n"
