@@ -60,6 +60,7 @@ class RelationsHandler(osmium.SimpleHandler):
 					osmc = relation["osmc:symbol"].split(":")
 
 					if len(osmc) >= 3:
+						relation["osmc"] = "yes"
 						relation["osmc_color"]  = osmc[0]
 						relation["osmc_background"]  = osmc[1]
 						relation["osmc_foreground"]  = osmc[2]
