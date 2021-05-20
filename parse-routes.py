@@ -84,8 +84,17 @@ class WayHandler(osmium.SimpleHandler):
 	def way(self, w):
 		if w.id in self.all_ways:
 			#self.way_writer.add_way(w)
-			for relation in self.all_ways[w.id]:
-				if relation["route"] == "bicycle" or relation["route"] == "mtb":
+			rel_count = len(self.all_ways[w.id])
+			#for relation in self.all_ways[w.id]:
+
+			for i in range(0, rel_count):
+				relation = self.all_ways[w.id][i]
+
+				if (
+					(rel_count == 2 and i == 1)
+					or
+					(rel_count > 2 and (relation["route"] == "bicycle" or relation["route"] == "mtb"))
+				):
 					way_nodes = []
 
 					for node in w.nodes:
@@ -99,6 +108,7 @@ class WayHandler(osmium.SimpleHandler):
 					way = w.replace(id=self.way_id, nodes=new_nodes, tags=relation)
 				else:
 					way = w.replace(id=self.way_id, tags=relation)
+					
 
 				self.way_writer.add_way(way)
 				self.way_id = self.way_id + 1
@@ -137,6 +147,9 @@ print("...done, found ways: %d" % len(all_ways))
 
 print("Extracting relation ways...")
 
+if os.path.exists(output_tmp):
+	os.remove(output_tmp)
+
 if os.path.exists(output_name):
 	os.remove(output_name)
 
@@ -163,5 +176,7 @@ with open(output_name, "w") as output:
 						output.write(bl)
 
 os.remove(output_tmp)
+os.remove(bbox_name)
+
 print("...done")
 
