@@ -132,7 +132,7 @@ print("Writing bounding box...")
 with open(bbox_name, "wb") as f:
 	bounding_param = "  <bounds minlon=\"%s\" minlat=\"%s\" maxlon=\"%s\" maxlat=\"%s\" origin=\"Darau, Blė parser\"/>" % (
 		min(box.bottom_left.lon, box.top_right.lon), min(box.top_right.lat, box.bottom_left.lat), 
-		max(box.bottom_left.lon, box.top_right.lon), min(box.top_right.lat, box.bottom_left.lat)
+		max(box.bottom_left.lon, box.top_right.lon), max(box.top_right.lat, box.bottom_left.lat)
 	) + os.linesep
 	f.write(bounding_param.encode("utf-8"))
 
