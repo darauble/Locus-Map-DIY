@@ -1,5 +1,12 @@
---INSERT INTO FoldersSub (name)  VALUES ('picnic_table');
---INSERT INTO FoldersSub (name)  VALUES ('cross');
+-- DELETE FROM Points WHERE type='P';
+
+INSERT INTO FoldersSub (name)  VALUES ('firepit');
+INSERT INTO FoldersSub (name)  VALUES ('picnic_table');
+INSERT INTO FoldersSub (name)  VALUES ('cross');
+INSERT INTO FoldersSub (name)  VALUES ('beach');
+INSERT INTO FoldersSub (name)  VALUES ('artwork');
+INSERT INTO FoldersSub (name)  VALUES ('public_bookcase');
+INSERT INTO FoldersSub (name)  VALUES ('charging_station');
 
 -- Table not in official database, but used for folder mapping
 CREATE TABLE RootSubMapping (id INTEGER NOT NULL PRIMARY KEY, subname TEXT NOT NULL, rootname TEXT NOT NULL);
@@ -81,5 +88,19 @@ INSERT INTO RootSubMapping (subname, rootname)  VALUES ('airport','transportatio
 INSERT INTO RootSubMapping (subname, rootname)  VALUES ('ferries','transportation');
 INSERT INTO RootSubMapping (subname, rootname)  VALUES ('parking','transportation');
 -- Darau
+INSERT INTO RootSubMapping (subname, rootname)  VALUES ('firepit','hiking_cycling');
 INSERT INTO RootSubMapping (subname, rootname)  VALUES ('picnic_table','hiking_cycling');
 INSERT INTO RootSubMapping (subname, rootname)  VALUES ('cross','hiking_cycling');
+INSERT INTO RootSubMapping (subname, rootname)  VALUES ('beach','nature');
+INSERT INTO RootSubMapping (subname, rootname)  VALUES ('artwork','culture_tourism');
+INSERT INTO RootSubMapping (subname, rootname)  VALUES ('public_bookcase','public_services');
+INSERT INTO RootSubMapping (subname, rootname)  VALUES ('charging_station','car_services');
+
+INSERT INTO Points_Root_Sub(Points_id, FoldersRoot_id, FoldersSub_id) select max(Points_Root_Sub.Points_id)+1, FoldersRoot.id, FoldersSub.id from Points_Root_Sub join FoldersRoot join FoldersSub where FoldersRoot.name='hiking_cycling' and FoldersSub.name='cross';
+INSERT INTO Points_Root_Sub(Points_id, FoldersRoot_id, FoldersSub_id) select max(Points_Root_Sub.Points_id)+1, FoldersRoot.id, FoldersSub.id from Points_Root_Sub join FoldersRoot join FoldersSub where FoldersRoot.name='hiking_cycling' and FoldersSub.name='firepit';
+INSERT INTO Points_Root_Sub(Points_id, FoldersRoot_id, FoldersSub_id) select max(Points_Root_Sub.Points_id)+1, FoldersRoot.id, FoldersSub.id from Points_Root_Sub join FoldersRoot join FoldersSub where FoldersRoot.name='hiking_cycling' and FoldersSub.name='picnic_table';
+INSERT INTO Points_Root_Sub(Points_id, FoldersRoot_id, FoldersSub_id) select max(Points_Root_Sub.Points_id)+1, FoldersRoot.id, FoldersSub.id from Points_Root_Sub join FoldersRoot join FoldersSub where FoldersRoot.name='nature' and FoldersSub.name='beach';
+INSERT INTO Points_Root_Sub(Points_id, FoldersRoot_id, FoldersSub_id) select max(Points_Root_Sub.Points_id)+1, FoldersRoot.id, FoldersSub.id from Points_Root_Sub join FoldersRoot join FoldersSub where FoldersRoot.name='culture_tourism' and FoldersSub.name='artwork';
+INSERT INTO Points_Root_Sub(Points_id, FoldersRoot_id, FoldersSub_id) select max(Points_Root_Sub.Points_id)+1, FoldersRoot.id, FoldersSub.id from Points_Root_Sub join FoldersRoot join FoldersSub where FoldersRoot.name='public_services' and FoldersSub.name='public_bookcase';
+INSERT INTO Points_Root_Sub(Points_id, FoldersRoot_id, FoldersSub_id) select max(Points_Root_Sub.Points_id)+1, FoldersRoot.id, FoldersSub.id from Points_Root_Sub join FoldersRoot join FoldersSub where FoldersRoot.name='car_services' and FoldersSub.name='charging_station';
+

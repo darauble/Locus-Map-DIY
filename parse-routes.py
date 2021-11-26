@@ -74,6 +74,10 @@ class RelationsHandler(osmium.SimpleHandler):
 				else:
 					relation["ref"] = relation["name"]
 
+				for k, v in relation.items():
+					if k not in ["name", "route", "network"]:
+						print("\t\t%s: %s" % (k, v))
+
 class WayHandler(osmium.SimpleHandler):
 	def __init__(self, all_ways, way_writer):
 		osmium.SimpleHandler.__init__(self)

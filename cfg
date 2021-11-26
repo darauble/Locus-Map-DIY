@@ -1,9 +1,11 @@
 #!/bin/bash
 CONTINENT=europe
-#COUNTRY=lithuania
-COUNTRY=poland
+COUNTRY=lithuania
+#COUNTRY=poland
+#COUNTRY=spain
 PBF_FILE=${COUNTRY}-latest.osm.pbf
 MAP_FILE=${COUNTRY}.osm.map
+MF_POI_FILE=${COUNTRY}.poi
 LOCUS_POI_FILE=locus-orig-${COUNTRY}.osm.db
 POI_FILE=${COUNTRY}.osm.db
 ROUTES_FILE=${COUNTRY}-routes.osm
